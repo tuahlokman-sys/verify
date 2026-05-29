@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Certificate Verification – PCE</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: #f5f5f5; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+    .card { background: #fff; border-radius: 12px; overflow: hidden; width: 100%; max-width: 480px; border: 1px solid #e0e0e0; }
+    .card-header { background: #1a6b5a; padding: 1.5rem; text-align: center; }
+    .card-header h1 { color: #fff; font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+    .card-header p { color: rgba(255,255,255,0.75); font-size: 13px; }
+    .card-body { padding: 1.5rem; }
+    .status-box { border-radius: 8px; padding: 12px 16px; margin-bottom: 1rem; display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; }
+    .status-box.checking { background: #fff8e1; color: #856404; border: 1px solid #ffc107; }
+    .status-box.success { background: #e8f5e9; color: #1b5e20; border: 1px solid #66bb6a; }
+    .status-box.error { background: #ffebee; color: #b71c1c; border: 1px solid #ef5350; }
+    .status-icon { font-size: 20px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    td { padding: 9px 14px; font-size: 13px; border: 1px solid #e0e0e0; }
+    td.lbl { font-weight: bold; background: #f5f5f5; width: 120px; color: #444; }
+    td.val { color: #222; }
+    .footer { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #eee; text-align: center; }
+    .footer p { font-size: 12px; color: #888; margin-bottom: 2px; }
+    .footer a { color: #1a6b5a; text-decoration: none; }
+    .spinner { width: 18px; height: 18px; border: 2px solid #ffc107; border-top-color: transparent; border-radius: 50%; animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="card-header">
+      <h1>Certificate Verification</h1>
+      <p>Perak Centre of Excellence Sdn Bhd</p>
+    </div>
+    <div class="card-body">
+      <div class="status-box checking" id="statusBox">
+        <div class="spinner"></div>
+        <span>Verifying certificate...</span>
+      </div>
+      <div id="resultArea"></div>
+      <div class="footer">
+        <p><strong>Perak Centre of Excellence Sdn Bhd</strong></p>
+        <p>Level 6, Perak Techno Trade Centre, Bandar Meru Raya, 30020 Ipoh, Perak</p>
+        <p><a href="https://www.pcesb.com.my">www.pcesb.com.my</a></p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const APPS_SCRIPT_URL = 'PASTE_YOUR_APPS_SCRIPT_URL_HERE';
+
+    function getParam(name) {
+      return new URLSearchParams(window.location.search).get(name) || '';
+    }
+
+    async function verify() {
+      const sn = getParam('sn');
+      const ic = getParam('ic');
+      const statusBox = document.getElementById('statusBox');
+      const resultArea = document.getElementById('resultArea');
+
+      if (!sn || !ic) {
+        statusBox.className = 'status-box error';
+        statusBox.innerHTML = '<span class="status-icon">✗</span><span>Invalid verification link.</span>';
+        return;
+      }
+
+      try {
+        const res  = await fetch(`${APPS_SCRIPT_URL}?sn=${encodeURIComponent(sn)}&ic=${encodeURIComponent(ic)}`);
+        const data = await res.json();
+
+        if (data.found) {
+          statusBox.className = 'status-box success';
+          statusBox.innerHTML = '<span class="status-icon">✓</span><span>Certificate verified — authentic</span>';
+          resultArea.innerHTML = `
+            <table>
+              <tr><td class="lbl">Serial No</td><td class="val">${data.sn}</td></tr>
+              <tr><td class="lbl">Name</td><td class="val">${data.name}</td></tr>
+              <tr><td class="lbl">Course</td><td class="val">${data.course}</td></tr>
+              <tr><td class="lbl">Date issued</td><td class="val">${data.date}</td></tr>
+              <tr><td class="lbl">Issued by</td><td class="val">Perak Centre of Excellence Sdn Bhd</td></tr>
+            </table>`;
+        } else {
+          statusBox.className = 'status-box error';
+          statusBox.innerHTML = '<span class="status-icon">✗</span><span>Certificate not found — may be invalid or fabricated.</span>';
+        }
+      } catch (err) {
+        statusBox.className = 'status-box error';
+        statusBox.innerHTML = '<span class="status-icon">✗</span><span>Verification failed. Please try again later.</span>';
+      }
+    }
+
+    verify();
+  </script>
+</body>
+</html>
